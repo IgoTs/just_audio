@@ -38,7 +38,6 @@
     FlutterResult _loadResult;
     FlutterResult _playResult;
     id _timeObserver;
-    id _timeProgressObserver;
     BOOL _automaticallyWaitsToMinimizeStalling;
     BOOL _allowsExternalPlayback;
     LoadControl *_loadControl;
@@ -74,7 +73,6 @@
     _orderInv = nil;
     _seekPos = kCMTimeInvalid;
     _timeObserver = 0;
-    _timeProgressObserver = 0;
     _updatePosition = 0;
     _updateTime = 0;
     _lastPosition = 0;
@@ -285,14 +283,6 @@
     [self updateOrder];
     [self enqueueFrom:[self indexForItem:(IndexedPlayerItem *)_player.currentItem]];
     [self broadcastPlaybackEvent];
-}
-
-- (void)checkProgress {
-    NSLog(@"checkProgress");
-    if (!_playing || CMTIME_IS_VALID(_seekPos) || _processingState == completed) return;
-    [self updatePosition];
-    [self broadcastPlaybackEvent];
-    NSLog(@"checkProgress broadcastPlaybackEvent");
 }
 
 - (void)checkForDiscontinuity {
@@ -677,13 +667,6 @@
                                                              }
             ];
         }
-
-        _timeProgressObserver = [_player addPeriodicTimeObserverForInterval:CMTimeMake(200, 1000)
-                                                              queue:nil
-                                                         usingBlock:^(CMTime time) {
-                                                             [weakSelf checkForDiscontinuity];
-                                                         }
-        ];
     }
     // Initialise the AVQueuePlayer with items.
     [self enqueueFrom:_index];
@@ -1338,10 +1321,6 @@
     if (_timeObserver) {
         [_player removeTimeObserver:_timeObserver];
         _timeObserver = 0;
-    }
-    if (_timeProgressObserver) {
-        [_player removeTimeObserver:_timeProgressObserver];
-        _timeProgressObserver = 0;
     }
     if (_indexedAudioSources) {
         for (int i = 0; i < [_indexedAudioSources count]; i++) {
